@@ -14,7 +14,7 @@ from astrbot.core.utils.session_waiter import SessionController, session_waiter
 
 from .cfg import Config
 from .ty import PluginLogger, SongItem, Songs
-from .utils import build_card_info, build_card_msg, counter_waiter
+from .utils import SOURCE_JUMP_MAPPER, build_card_info, build_card_msg, counter_waiter
 
 
 class Plugin(Star):
@@ -133,7 +133,7 @@ class Plugin(Star):
                     controller.stop()
                 return
             if self.cfg.music_card.enable and (
-                (it := meting_cfg.default_source) == "kugou"
+                (it := meting_cfg.default_source) in SOURCE_JUMP_MAPPER
             ):
                 card = await build_card_info(song, self.client, log, source=it)
                 if card is None:
