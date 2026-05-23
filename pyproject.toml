@@ -16,3 +16,90 @@ dev = [
     "pyyaml>=6.0.3",
     "ruff>=0.15.13",
 ]
+
+[tool.pyright]
+autoImportCompletions = true
+exclude = [
+  "**/.venv",
+  "**/__pycache__",
+  "**/node_modules",
+  "**/venv",
+  "build",
+  "dist"
+]
+include = ["**/*.py"]
+pythonVersion = "3.12"
+reportArgumentType = "warning"
+reportDuplicateImport = "warning"
+reportGeneralTypeIssues = "warning"
+reportImportCycles = "warning"
+reportIncompatibleMethodOverride = "warning"
+reportIncompatibleVariableOverride = "warning"
+typeCheckingMode = "standard"
+useLibraryCodeForTypes = true
+
+[[tool.pyright.executionEnvironments]]
+"pythonPlatform" = "All"
+"pythonVersion" = "3.12"
+"root" = "../../../"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending = "lf"
+quote-style = "preserve"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+ignore = [
+  "ARG002",
+  "B008",
+  "C901",
+  "E203",
+  "E402",
+  "E501",
+  "ERA001",
+  "F841",
+  "N801",
+  "N802",
+  "N815",
+  "N999",
+  "PLC0415",
+  "PLR0911",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
+  "PLR2004",
+  "PTH123",
+  "RUF001", # 字符串 unicode 歧义
+  "RUF002", # Docstring  unicode 歧义
+  "RUF003" # 注释 unicode 歧义
+]
+select = [
+  "ARG", # flake8-unused-arguments
+  "B", # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "E", # pycodestyle errors
+  "ERA", # eradicate
+  "F", # pyflakes
+  "I", # isort
+  "N", # pep8-naming
+  "PIE", # flake8-pie
+  "PL", # pylint
+  "PTH", # flake8-use-pathlib
+  "RET", # flake8-return
+  "RUF", # ruff-specific rules
+  "SIM", # flake8-simplify
+  "UP", # pyupgrade
+  "W" # pycodestyle warnings
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*" = ["E501"]
+"__init__.py" = ["F401"]
+
+[tool.tomlsort.overrides."project.dependencies"]
+inline_arrays = false
