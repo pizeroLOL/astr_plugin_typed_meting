@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from astrbot.api import logger
 from astrbot.api.event import filter
 from astrbot.api.star import Star
+from astrbot.core.config.default import VERSION
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.star.context import Context
@@ -38,7 +39,13 @@ class Plugin(Star):
             return
 
     async def initialize(self) -> None:
-        self.client = AsyncClient()
+        self.client = AsyncClient(
+            headers={
+                "Referer": "https://astrbot.app/",
+                "User-Agent": f"AstrBot/{VERSION}",
+                "UAK": "AstrBot/plugin_typed_meting",
+            }
+        )
 
     async def terminate(self) -> None:
         await self.client.aclose()
@@ -141,6 +148,7 @@ class Plugin(Star):
                     log,
                 )
                 await event.send(MessageChain([msg]))
+                controller.stop()
                 return
             await event.send(event.plain_result("暂不支持卡片以外的返回方式"))
             controller.stop()
