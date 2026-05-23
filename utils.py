@@ -4,12 +4,11 @@ from string import Template
 from typing import Literal
 from urllib.parse import quote
 
-from httpx import URL, AsyncClient, HTTPError
-from pydantic import ValidationError
-
 from astrbot.api.message_components import Json, Plain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.utils.session_waiter import SessionController
+from httpx import URL, AsyncClient, HTTPError
+from pydantic import ValidationError
 
 from .cfg import MusicCardConfig
 from .ty import (
@@ -34,9 +33,7 @@ def counter_waiter(
     return inner
 
 
-async def get_redirct_url(
-    client: AsyncClient, log: PluginLogger, url: str
-) -> str | None:
+async def get_redirct_url(client: AsyncClient, log: PluginLogger, url: str) -> str | None:
     try:
         log("debug", f"get_redirct_url {url}")
         rsp = await client.get(url, follow_redirects=False)
@@ -50,9 +47,7 @@ async def get_redirct_url(
         log("warn", f"{e.request.url} -> {e}", exc_info=True)
 
 
-SOURCE_FORMAT_MAPPER: dict[
-    Literal["netease", "tencent"] | str, Literal["163", "qq"]
-] = {
+SOURCE_FORMAT_MAPPER: dict[Literal["netease", "tencent"] | str, Literal["163", "qq"]] = {
     "netease": "163",
     "tencent": "qq",
 }
@@ -90,9 +85,7 @@ async def build_card_info(
         singer=song.artist,
         cover=pic_url,
         jump=Template(SOURCE_JUMP_MAPPER[source]).substitute({"id": quote(id)}),
-        format=source
-        if source not in SOURCE_FORMAT_MAPPER.keys()
-        else SOURCE_FORMAT_MAPPER[source],
+        format=SOURCE_FORMAT_MAPPER.get(source, source),
         url=str(song.url).replace("http://", "https://"),
     )
 
@@ -102,9 +95,7 @@ async def build_card_msg(
 ) -> Plain | Json:
     txt: str
     try:
-        rsp = await client.get(
-            cfg.sign_url, params=asdict(card_info), follow_redirects=True
-        )
+        rsp = await client.get(cfg.sign_url, params=asdict(card_info), follow_redirects=True)
         rsp.raise_for_status()
         txt = rsp.text
     except HTTPError as e:

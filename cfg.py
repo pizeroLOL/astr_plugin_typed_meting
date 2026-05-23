@@ -6,7 +6,6 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     Field,
-    ValidationInfo,
     model_validator,
 )
 from pydantic_core import PydanticUseDefault
@@ -24,7 +23,7 @@ SOURCE_URL_MAPPER: dict[
 }
 
 
-def patch_empty_str(value: str, info: ValidationInfo) -> str:
+def patch_empty_str(value: str) -> str:
     if value.strip() == "":
         raise PydanticUseDefault()
     return value
@@ -32,10 +31,7 @@ def patch_empty_str(value: str, info: ValidationInfo) -> str:
 
 class MetingConfig(BaseModel):
     url: Annotated[
-        Literal[
-            "https://musicapi.chuyel.top/meting/", "https://metingapi.nanorocky.top/"
-        ]
-        | str,
+        Literal["https://musicapi.chuyel.top/meting/", "https://metingapi.nanorocky.top/"] | str,
         AfterValidator(patch_empty_str),
     ] = Field(
         title="URL 地址",
@@ -100,9 +96,7 @@ class MetingConfig(BaseModel):
                 )
             )
 
-        return Template(self.url).substitute(
-            {"server": quote(server), "keyword": quote(keyword)}
-        )
+        return Template(self.url).substitute({"server": quote(server), "keyword": quote(keyword)})
 
 
 class MusicCardConfig(BaseModel):
@@ -117,7 +111,6 @@ class MusicCardConfig(BaseModel):
         description="用于签名音乐卡片的 URL 地址，请保证以 `/` 结尾。",
         default="https://oiapi.net/api/QQMusicJSONArk/",
     )
-    pass
 
 
 class SearchConfig(BaseModel):

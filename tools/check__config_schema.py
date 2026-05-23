@@ -91,7 +91,6 @@ class Object(
         description="可选。如果配置的类型是 object，需要添加 items 字段。items 的内容是这个配置项的子 Schema。理论上可以无限嵌套，但是不建议过多嵌套。",
         default=None,
     )
-    pass
 
 
 class List(FieldBase[Literal["list"], list]):
@@ -100,7 +99,6 @@ class List(FieldBase[Literal["list"], list]):
         description="用于让用户快速选择在 WebUI 上已经配置好的知识库数据。",
         default=None,
     )
-    pass
 
 
 class Dict(FieldBase[Literal["dict"], dict[str, Any]]):
@@ -116,18 +114,13 @@ class TemplateList(FieldBase[Literal["template_list"], list[Any]]):
         description="可选填写 template schema，当设置之后，用户可以透过 WebUI 快速编辑。",
         default=None,
     )
-    pass
 
 
 class File(FieldBase[Literal["file"], list[str]]):
-    file_types: set[str] | None = Field(
-        description="允许上传的文件类型列表", default=None
-    )
+    file_types: set[str] | None = Field(description="允许上传的文件类型列表", default=None)
 
 
-type AllFieldTypes = (
-    String | Text | Int | Float | Bool | Object | List | Dict | TemplateList | File
-)
+type AllFieldTypes = String | Text | Int | Float | Bool | Object | List | Dict | TemplateList | File
 
 ConfSchema = RootModel[dict[str, AllFieldTypes]]
 
@@ -142,4 +135,3 @@ if __name__ == "__main__":
     d = loads(Path("_conf_schema.json").read_text(encoding="utf-8"))
     del d["$schema"]
     ConfSchema.model_validate(d)
-    pass

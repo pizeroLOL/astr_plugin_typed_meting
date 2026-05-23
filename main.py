@@ -1,9 +1,6 @@
 from typing import Literal
 from uuid import UUID, uuid4
 
-from httpx import AsyncClient, HTTPError
-from pydantic import ValidationError
-
 from astrbot.api import logger
 from astrbot.api.event import filter
 from astrbot.api.star import Star
@@ -11,6 +8,8 @@ from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.star.context import Context
 from astrbot.core.utils.session_waiter import SessionController, session_waiter
+from httpx import AsyncClient, HTTPError
+from pydantic import ValidationError
 
 from .cfg import Config
 from .ty import PluginLogger, SongItem, Songs
@@ -55,9 +54,7 @@ class Plugin(Star):
                 "info": logger.info,
                 "warn": logger.warning,
                 "critical": logger.critical,
-            }.get(mode, logger.info)(
-                f"[{self.name}] <{this}> -> {msg}", exc_info=exc_info
-            )
+            }.get(mode, logger.info)(f"[{self.name}] <{this}> -> {msg}", exc_info=exc_info)
 
         return inner
 
@@ -80,11 +77,9 @@ class Plugin(Star):
         log("debug", f"try parse `{rsp.text}`")
 
         try:
-            songs = Songs.model_validate_json(rsp.text).root[
-                : self.cfg.searching.results_limit
-            ]
+            songs = Songs.model_validate_json(rsp.text).root[: self.cfg.searching.results_limit]
         except ValidationError:
-            log("warn", f"序列化错误 `{url}` -> {repr(rsp.text)}", exc_info=True)
+            log("warn", f"序列化错误 `{url}` -> {rsp.text!r}", exc_info=True)
             yield event.plain_result("搜索序列化错误")
             return
 
@@ -95,18 +90,13 @@ class Plugin(Star):
         info_msg = "输入 `点歌 <序号>` 来收听音乐\n输入 `取消` 以取消点歌"
         yield (
             event.plain_result(
-                "\n".join(v.into_search_result(i + 1) for i, v in enumerate(songs))
-                + info_msg
+                "\n".join(v.into_search_result(i + 1) for i, v in enumerate(songs)) + info_msg
             )
         )
 
-        @session_waiter(
-            timeout=self.cfg.searching.results_ttl_second, record_history_chains=False
-        )
+        @session_waiter(timeout=self.cfg.searching.results_ttl_second, record_history_chains=False)
         @counter_waiter
-        async def waiter(
-            counter: int, controller: SessionController, event: AstrMessageEvent
-        ):
+        async def waiter(counter: int, controller: SessionController, event: AstrMessageEvent):
             msg = event.get_message_str().strip().strip("`")
             if msg == "退出":
                 await event.send(event.plain_result("已退出"))
