@@ -21,17 +21,6 @@
         "description": "默认音源",
         "hint": "具体见 API 文档，通常支持如下四个选项 `netease` 网易云音乐、`tencent` 腾讯音乐、`kugou` 酷狗音乐、`kuwo` 酷我音乐",
         "default": "netease"
-      },
-      "download_limit_mb": {
-        "type": "int",
-        "description": "最大下载大小（MB）",
-        "hint": "用于控制下载时文件的最大大小，范围 10-200 MB。",
-        "slider": {
-          "min": 10,
-          "max": 200,
-          "step": 1
-        },
-        "default": 50
       }
     }
   },
@@ -70,12 +59,6 @@
         },
         "default": 120
       },
-      "enable_user_isolation": {
-        "type": "bool",
-        "description": "禁用用户隔离",
-        "hint": "启用单聊天频道中不同用户的请求隔离，让 A 用户搜歌的结果只能让 A 回点歌。",
-        "default": false
-      },
       "results_limit": {
         "type": "int",
         "description": "结果上限",
@@ -86,35 +69,6 @@
           "step": 1
         },
         "default": 10
-      }
-    }
-  },
-  "speech_segmentation": {
-    "type": "object",
-    "description": "分段选项",
-    "hint": "用于控制语音分段的行为。注意，该选项只在音乐卡片禁用时有效。",
-    "items": {
-      "duration": {
-        "type": "int",
-        "description": "分段时长（秒）",
-        "hint": "每条语音的最大时长，范围 30-300 秒。",
-        "slider": {
-          "min": 30,
-          "max": 300,
-          "step": 1
-        },
-        "default": 120
-      },
-      "interval": {
-        "type": "int",
-        "description": "发送间隔（秒）",
-        "hint": "发送语音片段之间的间隔时间，范围 0-10 秒。",
-        "slider": {
-          "min": 0,
-          "max": 10,
-          "step": 1
-        },
-        "default": 1
       }
     }
   }

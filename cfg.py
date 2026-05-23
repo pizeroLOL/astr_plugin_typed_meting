@@ -49,13 +49,6 @@ class MetingConfig(BaseModel):
         description="具体见 API 文档，通常支持如下四个选项 `netease` 网易云音乐、`tencent` 腾讯音乐、`kugou` 酷狗音乐、`kuwo` 酷我音乐",
         default="netease",
     )
-    download_limit_mb: int = Field(
-        title="最大下载大小（MB）",
-        description="用于控制下载时文件的最大大小，范围 10-200 MB。",
-        ge=10,
-        le=200,
-        default=50,
-    )
 
     @model_validator(mode="after")
     def validate_default_url(self) -> "MetingConfig":
@@ -85,37 +78,12 @@ class SearchConfig(BaseModel):
         le=300,
         default=120,
     )
-    # enable_recall: bool = Field(
-    #     title="启用超时撤回", description="在过期后自动撤回搜索结果。", default=False
-    # )
-    enable_user_isolation: bool = Field(
-        title="禁用用户隔离",
-        description="启用单聊天频道中不同用户的请求隔离，让 A 用户搜歌的结果只能让 A 回点歌。",
-        default=False,
-    )
     results_limit: int = Field(
         title="结果上限",
         description="显示搜索结果时的条数上限，范围 5-30 条。",
         ge=5,
         le=30,
         default=10,
-    )
-
-
-class SpeechSegmentationConfig(BaseModel):
-    duration: int = Field(
-        title="分段时长（秒）",
-        description="每条语音的最大时长，范围 30-300 秒。",
-        ge=30,
-        le=300,
-        default=120,
-    )
-    interval: int = Field(
-        title="发送间隔（秒）",
-        description="发送语音片段之间的间隔时间，范围 0-10 秒。",
-        ge=0,
-        le=10,
-        default=1,
     )
 
 
@@ -132,9 +100,4 @@ class Config(BaseModel):
     )
     searching: SearchConfig = Field(
         title="搜索选项", description="用于控制搜索的具体行为。", default=SearchConfig()
-    )
-    speech_segmentation: SpeechSegmentationConfig = Field(
-        title="分段选项",
-        description="用于控制语音分段的行为。注意，该选项只在音乐卡片禁用时有效。",
-        default=SpeechSegmentationConfig(),
     )
