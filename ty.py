@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
-from pydantic import BaseModel, HttpUrl, RootModel
-
 from astrbot.api.message_components import Json
+from pydantic import BaseModel, HttpUrl, RootModel
 
 
 class SongItem(BaseModel):
@@ -54,6 +53,4 @@ class CardSignResult(BaseModel):
     data: CardSignData
 
     def into_json(self) -> Json:
-        return Json(
-            data=self.data.model_dump(), config={"token": self.data.config.token}
-        )
+        return Json(data=self.data.model_dump(), config={"token": self.data.config.token})
