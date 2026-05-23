@@ -1,8 +1,10 @@
+from asyncio import sleep
 from typing import Literal
 from uuid import UUID, uuid4
 
 from astrbot.api import logger
 from astrbot.api.event import filter
+from astrbot.api.message_components import File
 from astrbot.api.star import Star
 from astrbot.core.config.default import VERSION
 from astrbot.core.message.message_event_result import MessageChain
@@ -139,6 +141,11 @@ class Plugin(Star):
                 card = await build_card_info(song, self.client, log, source=it)
                 if card is None:
                     await event.send(event.plain_result("无法构造卡片"))
+                    await sleep(1)
+                    await event.send(
+                        MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))])
+                    )
+
                     controller.stop()
                     return
                 msg = await build_card_msg(
@@ -150,7 +157,7 @@ class Plugin(Star):
                 await event.send(MessageChain([msg]))
                 controller.stop()
                 return
-            await event.send(event.plain_result("暂不支持卡片以外的返回方式"))
+            await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
             controller.stop()
             return
 
