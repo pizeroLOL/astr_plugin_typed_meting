@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=./tools/metadata.yaml.json-schema.json
+name: typed meting
+desc: 一个简易的 meting api 插件
+repo: https://github.com/pizeroLOL/astr_plugin_typed_meting
+author: pizeroLOL
+version: v0.0.1
