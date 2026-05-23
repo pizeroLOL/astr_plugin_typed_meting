@@ -33,9 +33,9 @@ def counter_waiter(
     return inner
 
 
-async def get_redirct_url(client: AsyncClient, log: PluginLogger, url: str) -> str | None:
+async def get_redirect_url(client: AsyncClient, log: PluginLogger, url: str) -> str | None:
     try:
-        log("debug", f"get_redirct_url {url}")
+        log("debug", f"get_redirect_url {url}")
         rsp = await client.get(url, follow_redirects=False)
         return (
             str(location)
@@ -76,7 +76,7 @@ async def build_card_info(
         if source != "netease"
         else (pic := str(song.pic)) + ("&" if "?" in pic else "?") + "picsize=320"
     )
-    pic_url = await get_redirct_url(client, log, raw_pic_url)
+    pic_url = await get_redirect_url(client, log, raw_pic_url)
     if pic_url is None:
         log("warn", f"缺少 `pic_url` {song.pic} -> {raw_pic_url} -> None")
         return None
