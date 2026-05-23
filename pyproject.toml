@@ -13,5 +13,6 @@ dependencies = [
 dev = [
     "prek>=0.4.0",
     "pyright>=1.1.409",
+    "pyyaml>=6.0.3",
     "ruff>=0.15.13",
 ]
