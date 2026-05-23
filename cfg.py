@@ -1,6 +1,4 @@
-from string import Template
 from typing import Annotated, Literal
-from urllib.parse import quote, urljoin
 
 from pydantic import (
     AfterValidator,
@@ -63,40 +61,6 @@ class MetingConfig(BaseModel):
     def validate_default_url(self) -> "MetingConfig":
         self.kind = SOURCE_URL_MAPPER.get(self.url, "custom")
         return self
-
-    def build_url(self, server: str, keyword: str) -> str:
-        if self.kind == "php":
-            return (
-                self.url
-                if (has_q := "?" in self.url) and self.url[-1] == "&"
-                else self.url + "&"
-                if has_q
-                else self.url + "?"
-            ) + "".join(
-                f"{k}={quote(v, safe='')}"
-                for k, v in {
-                    "server": server,
-                    "type": "search",
-                    "id": "0",
-                    "dwrc": "false",
-                    "keyword": keyword,
-                }.items()
-            )
-        if self.kind == "node":
-            return (
-                urljoin(self.url, "api")
-                + "?"
-                + "".join(
-                    f"{k}={quote(v, safe='')}"
-                    for k, v in {
-                        "server": server,
-                        "type": "search",
-                        "id": keyword,
-                    }.items()
-                )
-            )
-
-        return Template(self.url).substitute({"server": quote(server), "keyword": quote(keyword)})
 
 
 class MusicCardConfig(BaseModel):

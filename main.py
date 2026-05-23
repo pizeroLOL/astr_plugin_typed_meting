@@ -13,7 +13,7 @@ from pydantic import ValidationError
 
 from .cfg import Config
 from .ty import PluginLogger, SongItem, Songs
-from .utils import SOURCE_JUMP_MAPPER, build_card_info, build_card_msg, counter_waiter
+from .utils import SOURCE_JUMP_MAPPER, build_card_info, build_card_msg, build_url, counter_waiter
 
 
 class Plugin(Star):
@@ -59,10 +59,14 @@ class Plugin(Star):
         return inner
 
     @filter.command("搜歌")
-    async def search(self, event: AstrMessageEvent, keyword: str):
+    async def search(self, event: AstrMessageEvent):
+        keyword = event.message_str[3:].strip()
+        if len(keyword) == 0:
+            yield event.plain_result("缺少歌名，请使用 `/搜歌 <歌名>` 的形式发起请求。")
+            return
         log = self.log(uuid4())
         meting_cfg = self.cfg.meting
-        url = meting_cfg.build_url(meting_cfg.url, keyword)
+        url = build_url(meting_cfg, keyword)
         log("debug", f"builded {url}")
 
         try:

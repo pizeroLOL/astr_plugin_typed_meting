@@ -2,7 +2,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import asdict
 from string import Template
 from typing import Literal
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 
 from astrbot.api.message_components import Json, Plain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
@@ -10,7 +10,7 @@ from astrbot.core.utils.session_waiter import SessionController
 from httpx import URL, AsyncClient, HTTPError
 from pydantic import ValidationError
 
-from .cfg import MusicCardConfig
+from .cfg import MetingConfig, MusicCardConfig
 from .ty import (
     CardInfo,
     CardSignResult,
@@ -107,3 +107,40 @@ async def build_card_msg(
     except ValidationError:
         log("warn", f"签名序列化错误 `{txt}`", exc_info=True)
         return Plain("签名序列化错误")
+
+
+def build_url(config: MetingConfig, keyword: str) -> str:
+    if config.kind == "php":
+        return (
+            config.url
+            if (has_q := "?" in config.url) and config.url[-1] == "&"
+            else config.url + "&"
+            if has_q
+            else config.url + "?"
+        ) + "&".join(
+            f"{k}={quote(v, safe='')}"
+            for k, v in {
+                "server": config.default_source,
+                "type": "search",
+                "id": "0",
+                "dwrc": "false",
+                "keyword": keyword,
+            }.items()
+        )
+    if config.kind == "node":
+        return (
+            urljoin(config.url, "api")
+            + "?"
+            + "&".join(
+                f"{k}={quote(v, safe='')}"
+                for k, v in {
+                    "server": config.default_source,
+                    "type": "search",
+                    "id": keyword,
+                }.items()
+            )
+        )
+
+    return Template(config.url).substitute(
+        {"server": quote(config.default_source), "keyword": quote(keyword)}
+    )
