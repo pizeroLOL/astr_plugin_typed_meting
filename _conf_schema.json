@@ -1,7 +1,8 @@
 {
   "meting": {
     "type": "object",
-    "description": "用于配置 Meting 的具体行为。",
+    "description": "Meting",
+    "hint": "用于配置 Meting 的具体行为。",
     "items": {
       "kind": {
         "type": "string",
