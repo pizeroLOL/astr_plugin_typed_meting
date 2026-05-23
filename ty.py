@@ -1,19 +1,37 @@
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from astrbot.api.message_components import Json
-from pydantic import BaseModel, HttpUrl, RootModel
+from pydantic import BaseModel, HttpUrl, RootModel, model_validator
+
+
+def remap[T](d: dict[str, T], mapper: dict[str, str]) -> dict[str, T]:
+    d.update(
+        {
+            target_key: value
+            for source_key, target_key in mapper.items()
+            if (value := d.get(source_key)) is not None
+        }
+    )
+    return d
 
 
 class SongItem(BaseModel):
     name: str
     artist: str
-    album: str | None
+    album: str | None = None
     url: HttpUrl
     pic: HttpUrl
 
+    @model_validator(mode="before")
+    @classmethod
+    def _map_node_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            remap(data, {"title": "name", "author": "artist"})
+        return data
+
     def into_search_result(self, index: int) -> str:
-        return f"{index} {self.album + ' | ' if self.album is not None else ''}{self.name} - {self.artist}"
+        return f"{index}. {self.album + ' | ' if self.album is not None else ''}{self.name} - {self.artist}"
 
 
 Songs = RootModel[list[SongItem]]

@@ -98,7 +98,7 @@ class Plugin(Star):
             yield event.plain_result("暂无歌曲")
             return
 
-        info_msg = "输入 `点歌 <序号>` 来收听音乐\n输入 `取消` 以取消点歌"
+        info_msg = "\n输入 `点歌 <序号>` 来收听音乐\n输入 `取消` 以取消点歌"
         yield (
             event.plain_result(
                 "\n".join(v.into_search_result(i + 1) for i, v in enumerate(songs)) + info_msg
