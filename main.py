@@ -67,13 +67,72 @@ class Plugin(Star):
 
         return inner
 
-    @filter.command("搜歌")
-    async def search(self, event: AstrMessageEvent):
+    @filter.command("点歌")
+    async def order(self, event: AstrMessageEvent):
+        log = self.log(uuid4())
         keyword = event.message_str[3:].strip()
         if len(keyword) == 0:
+            log(
+                "info",
+                f"搜歌缺少歌名 {event.session_id} / {event.get_sender_id} -> {event.message_str!r} ",
+            )
+            yield event.plain_result("缺少歌名，请使用 `/点歌 <歌名>` 的形式发送请求。")
+            return
+        meting = self.cfg.meting
+        url = build_url(meting, keyword)
+        log("debug", f"builded {url}")
+        try:
+            rsp = await self.client.get(url, follow_redirects=True)
+            rsp.raise_for_status()
+        except HTTPError as e:
+            log("warn", f"搜索响应错误 {url!r} -> {e}", exc_info=True)
+            yield event.plain_result("搜索响应错误")
+            return
+
+        try:
+            song = next(iter(Songs.model_validate_json(rsp.text).root), None)
+        except ValidationError as e:
+            log("warn", f"序列化错误 {url!r} -> {rsp.text!r}", exc_info=True)
+            yield event.plain_result("搜索序列化错误")
+            return
+
+        if song is None:
+            log(
+                "info",
+                f"暂无歌曲 {event.session_id} / {event.get_sender_id} -> {event.message_str!r}",
+            )
+            yield event.plain_result("暂无歌曲")
+            return
+
+        if self.cfg.music_card.enable and (it := meting.default_source) in SOURCE_JUMP_MAPPER:
+            card = await build_card_info(song, self.client, log, source=it)
+            if card is None:
+                await event.send(event.plain_result("无法构造卡片"))
+                await sleep(1)
+                await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
+                return
+            msg = await build_card_msg(
+                self.cfg.music_card,
+                card,
+                self.client,
+                log,
+            )
+            await event.send(MessageChain([msg]))
+            return
+        await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
+        return
+
+    @filter.command("搜歌")
+    async def search(self, event: AstrMessageEvent):
+        log = self.log(uuid4())
+        keyword = event.message_str[3:].strip()
+        if len(keyword) == 0:
+            log(
+                "info",
+                f"搜歌缺少歌名 {event.session_id} / {event.get_sender_id} -> {event.message_str:!r} ",
+            )
             yield event.plain_result("缺少歌名，请使用 `/搜歌 <歌名>` 的形式发起请求。")
             return
-        log = self.log(uuid4())
         meting_cfg = self.cfg.meting
         url = build_url(meting_cfg, keyword)
         log("debug", f"builded {url}")
