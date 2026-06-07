@@ -18,7 +18,7 @@ jobs:
       - name: Clone AstrBot
         uses: actions/checkout@v4
         with:
-          repository: Soulter/AstrBot
+          repository: AstrBotDevs/AstrBot
           path: astrbot
 
       - name: Move plugin into AstrBot structure
