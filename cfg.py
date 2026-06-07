@@ -34,7 +34,7 @@ class MetingConfig(BaseModel):
     ] = Field(
         title="URL 地址",
         description="用于提供 Meting API 的 URL 地址，若选择了 custom 类型，请提供形如 `https://example.com/$$escape/${server}/${keyword}` 这样的字符串，样式参考 https://docs.python.org/3.11/library/string.html#template-strings 。注意，当 URL 为 `https://musicapi.chuyel.top/meting/` 时强制类型为 `node`，当 URL 为 `https://metingapi.nanorocky.top/` 时强制为 `php`。",
-        default="https://musicapi.chuyel.top/meting/",
+        default="https://metingapi.nanorocky.top/",
     )
     kind: Literal["node", "php", "custom"] = Field(
         title="类型",
