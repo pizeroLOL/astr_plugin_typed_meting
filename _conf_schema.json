@@ -1,21 +1,23 @@
 {
   "meting": {
     "type": "object",
-    "description": "Meting",
-    "hint": "用于配置 Meting 的具体行为。",
     "items": {
-      "kind": {
-        "type": "string",
-        "description": "类型",
-        "options": ["node", "php", "custom"],
-        "default": "node",
-        "hint": "API 的类型，node 为 `https://github.com/metowolf/meting`，php 为 `https://github.com/nanorocky/meting-api`。"
-      },
       "url": {
         "type": "string",
         "description": "URL 地址",
-        "default": "https://metingapi.nanorocky.top/",
-        "hint": "用于提供 Meting API 的 URL 地址，若选择了 custom 类型，请提供形如 `https://example.com/$$escape/${{escape}}/${server}/${keyword}` 这样的字符串，样式参考 https://docs.python.org/3.11/library/string.html#template-strings 。注意，当 URL 为 `https://musicapi.chuyel.top/meting/` 时强制类型为 `node`，当 URL 为 `https://metingapi.nanorocky.top/` 时强制为 `php`。"
+        "hint": "用于提供 Meting API 的 URL 地址，若选择了 custom 类型，请提供形如 `https://example.com/$$escape/${server}/${keyword}` 这样的字符串，样式参考 https://docs.python.org/3.11/library/string.html#template-strings 。注意，当 URL 为 `https://musicapi.chuyel.top/meting/` 时强制类型为 `node`，当 URL 为 `https://metingapi.nanorocky.top/` 时强制为 `php`。",
+        "default": "https://musicapi.chuyel.top/meting/"
+      },
+      "kind": {
+        "type": "string",
+        "options": [
+          "node",
+          "php",
+          "custom"
+        ],
+        "description": "类型",
+        "hint": "API 的类型，node 为 `https://github.com/metowolf/meting`，php 为 `https://github.com/nanorocky/meting-api`。",
+        "default": "node"
       },
       "default_source": {
         "type": "string",
@@ -23,18 +25,18 @@
         "hint": "具体见 API 文档，通常支持如下四个选项 `netease` 网易云音乐、`tencent` 腾讯音乐、`kugou` 酷狗音乐、`kuwo` 酷我音乐",
         "default": "netease"
       }
-    }
+    },
+    "description": "Meting",
+    "hint": "用于配置 Meting 的具体行为。"
   },
   "music_card": {
     "type": "object",
-    "description": "音乐卡片",
-    "hint": "用于控制音乐卡片的具体行为。",
     "items": {
       "enable": {
         "type": "bool",
-        "default": false,
         "description": "启用",
-        "hint": "是否使用个音乐卡片显示搜素结果。"
+        "hint": "是否使用个音乐卡片显示搜素结果。",
+        "default": false
       },
       "sign_url": {
         "type": "string",
@@ -42,35 +44,37 @@
         "hint": "用于签名音乐卡片的 URL 地址，请保证以 `/` 结尾。",
         "default": "https://oiapi.net/api/QQMusicJSONArk/"
       }
-    }
+    },
+    "description": "音乐卡片",
+    "hint": "用于控制音乐卡片的具体行为。"
   },
   "searching": {
     "type": "object",
-    "description": "搜索选项",
-    "hint": "用于控制搜索的具体行为。",
     "items": {
       "results_ttl_second": {
         "type": "int",
+        "slider": {
+          "step": 1,
+          "min": 30,
+          "max": 300
+        },
         "description": "超时时间（秒）",
         "hint": "搜索结果在制定时间后过期，范围为 30-300 秒。",
-        "slider": {
-          "min": 30,
-          "max": 300,
-          "step": 1
-        },
         "default": 120
       },
       "results_limit": {
         "type": "int",
+        "slider": {
+          "step": 1,
+          "min": 5,
+          "max": 30
+        },
         "description": "结果上限",
         "hint": "显示搜索结果时的条数上限，范围 5-30 条。",
-        "slider": {
-          "min": 5,
-          "max": 30,
-          "step": 1
-        },
         "default": 10
       }
-    }
+    },
+    "description": "搜索选项",
+    "hint": "用于控制搜索的具体行为。"
   }
 }
