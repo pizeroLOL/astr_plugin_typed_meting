@@ -1,4 +1,5 @@
 from asyncio import sleep
+from string import Template
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -12,11 +13,35 @@ from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.star.context import Context
 from astrbot.core.utils.session_waiter import SessionController, session_waiter
 from httpx import AsyncClient, HTTPError
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from .cfg import Config
 from .ty import PluginLogger, SongItem, Songs
-from .utils import SOURCE_JUMP_MAPPER, build_card_info, build_card_msg, build_url, counter_waiter
+from .utils import (
+    SOURCE_JUMP_MAPPER,
+    build_card_info,
+    build_card_msg,
+    build_url,
+    counter_waiter,
+)
+
+CLIENT_HEADER = {
+    "Referer": "https://astrbot.app/",
+    "User-Agent": f"AstrBot/{VERSION}",
+    "UAK": "AstrBot/plugin_typed_meting",
+}
+
+SONG_TEMPLATE = """## $name
+
+- 艺人：$artist
+- 专辑图片：$pic
+- 歌曲链接：$url
+"""
+
+
+class TypedMetingInputs(BaseModel):
+    keyword: str = Field(description="搜索的关键字。")
+    limit: int | None = Field(description="用于控制最大返回的条数，为空则使用默认配置。")
 
 
 class Plugin(Star):
@@ -31,23 +56,16 @@ class Plugin(Star):
         try:
             if config is not None:
                 self.cfg = Config.model_validate(config)
-                return
-            logger.warning(f"[{self.name}] 未找到配置文件，已启用默认配置。")
+            else:
+                logger.warning(f"[{self.name}] 未找到配置文件，已启用默认配置。")
         except ValidationError:
             logger.warning(
                 f"[{self.name}] 初始化配置错误，已使用默认配置。",
                 exc_info=True,
             )
-            return
 
     async def initialize(self) -> None:
-        self.client = AsyncClient(
-            headers={
-                "Referer": "https://astrbot.app/",
-                "User-Agent": f"AstrBot/{VERSION}",
-                "UAK": "AstrBot/plugin_typed_meting",
-            }
-        )
+        self.client = AsyncClient(headers=CLIENT_HEADER)
 
     async def terminate(self) -> None:
         await self.client.aclose()
@@ -66,6 +84,58 @@ class Plugin(Star):
             }.get(mode, logger.info)(f"[{self.name}] <{this}> -> {msg}", exc_info=exc_info)
 
         return inner
+
+    @filter.llm_tool()
+    async def order_song(self, event: AstrMessageEvent, keyword: str):
+        """点歌
+        用于给用户点歌，当返回歌曲信息的时候代表点歌已完成。
+
+        Args:
+            keyword(string): 关键词
+        """
+        log = self.log(uuid4())
+        meting = self.cfg.meting
+        url = build_url(meting, keyword)
+        log("debug", f"builded {url}")
+        try:
+            rsp = await self.client.get(url, follow_redirects=True)
+            rsp.raise_for_status()
+        except HTTPError as e:
+            log("warn", f"搜索响应错误 {url!r} -> {e}", exc_info=True)
+            return "搜索响应错误"
+
+        try:
+            song = next(iter(Songs.model_validate_json(rsp.text).root), None)
+        except ValidationError as e:
+            log("warn", f"序列化错误 {url!r} -> {rsp.text!r}", exc_info=True)
+            return "搜索序列化错误"
+
+        if song is None:
+            log(
+                "info",
+                f"暂无歌曲 {event.session_id} / {event.get_sender_id} -> {event.message_str!r}",
+            )
+            return "暂无歌曲"
+
+        song_info = Template(SONG_TEMPLATE).safe_substitute(song.model_dump(mode="json"))
+
+        if self.cfg.music_card.enable and (it := meting.default_source) in SOURCE_JUMP_MAPPER:
+            card = await build_card_info(song, self.client, log, source=it)
+            if card is None:
+                await event.send(event.plain_result("无法构造卡片"))
+                await sleep(1)
+                await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
+                return song_info
+            msg = await build_card_msg(
+                self.cfg.music_card,
+                card,
+                self.client,
+                log,
+            )
+            await event.send(MessageChain([msg]))
+            return song_info
+        await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
+        return song_info
 
     @filter.command("点歌")
     async def order(self, event: AstrMessageEvent):
