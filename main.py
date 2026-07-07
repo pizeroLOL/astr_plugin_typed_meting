@@ -1,42 +1,32 @@
-from asyncio import sleep
-from string import Template
 from typing import Literal
 from uuid import UUID, uuid4
 
 from astrbot.api import logger
 from astrbot.api.event import filter
-from astrbot.api.message_components import File
 from astrbot.api.star import Star
 from astrbot.core.config.default import VERSION
-from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.star.context import Context
 from astrbot.core.utils.session_waiter import SessionController, session_waiter
-from httpx import AsyncClient, HTTPError
+from httpx import AsyncClient
 from pydantic import BaseModel, Field, ValidationError
 
 from .cfg import Config
-from .ty import PluginLogger, SongItem, Songs
-from .utils import (
-    SOURCE_JUMP_MAPPER,
-    build_card_info,
-    build_card_msg,
-    build_url,
-    counter_waiter,
+from .pipeline import (
+    MetingAPIError,
+    MetingError,
+    MetingParseError,
+    MetingPipeline,
+    NoSongFoundError,
 )
+from .ty import PluginLogger, SongItem
+from .utils import counter_waiter
 
 CLIENT_HEADER = {
     "Referer": "https://astrbot.app/",
     "User-Agent": f"AstrBot/{VERSION}",
     "UAK": "AstrBot/plugin_typed_meting",
 }
-
-SONG_TEMPLATE = """## $name
-
-- 艺人：$artist
-- 专辑图片：$pic
-- 歌曲链接：$url
-"""
 
 
 class TypedMetingInputs(BaseModel):
@@ -94,48 +84,21 @@ class Plugin(Star):
             keyword(string): 关键词
         """
         log = self.log(uuid4())
-        meting = self.cfg.meting
-        url = build_url(meting, keyword)
-        log("debug", f"builded {url}")
+        pipeline = MetingPipeline(self.client, self.cfg, log=log)
         try:
-            rsp = await self.client.get(url, follow_redirects=True)
-            rsp.raise_for_status()
-        except HTTPError as e:
-            log("warn", f"搜索响应错误 {url!r} -> {e}", exc_info=True)
-            return "搜索响应错误"
-
-        try:
-            song = next(iter(Songs.model_validate_json(rsp.text).root), None)
-        except ValidationError as e:
-            log("warn", f"序列化错误 {url!r} -> {rsp.text!r}", exc_info=True)
-            return "搜索序列化错误"
-
-        if song is None:
+            msg_chain, text = await pipeline.fetch_and_deliver_first(keyword)
+        except NoSongFoundError:
             log(
                 "info",
                 f"暂无歌曲 {event.session_id} / {event.get_sender_id} -> {event.message_str!r}",
             )
             return "暂无歌曲"
-
-        song_info = Template(SONG_TEMPLATE).safe_substitute(song.model_dump(mode="json"))
-
-        if self.cfg.music_card.enable and (it := meting.default_source) in SOURCE_JUMP_MAPPER:
-            card = await build_card_info(song, self.client, log, source=it)
-            if card is None:
-                await event.send(event.plain_result("无法构造卡片"))
-                await sleep(1)
-                await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
-                return song_info
-            msg = await build_card_msg(
-                self.cfg.music_card,
-                card,
-                self.client,
-                log,
-            )
-            await event.send(MessageChain([msg]))
-            return song_info
-        await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
-        return song_info
+        except MetingAPIError:
+            return "搜索响应错误"
+        except MetingParseError:
+            return "搜索序列化错误"
+        await event.send(msg_chain)
+        return text
 
     @filter.command("点歌")
     async def order(self, event: AstrMessageEvent):
@@ -148,49 +111,23 @@ class Plugin(Star):
             )
             yield event.plain_result("缺少歌名，请使用 `/点歌 <歌名>` 的形式发送请求。")
             return
-        meting = self.cfg.meting
-        url = build_url(meting, keyword)
-        log("debug", f"builded {url}")
+        pipeline = MetingPipeline(self.client, self.cfg, log=log)
         try:
-            rsp = await self.client.get(url, follow_redirects=True)
-            rsp.raise_for_status()
-        except HTTPError as e:
-            log("warn", f"搜索响应错误 {url!r} -> {e}", exc_info=True)
-            yield event.plain_result("搜索响应错误")
-            return
-
-        try:
-            song = next(iter(Songs.model_validate_json(rsp.text).root), None)
-        except ValidationError as e:
-            log("warn", f"序列化错误 {url!r} -> {rsp.text!r}", exc_info=True)
-            yield event.plain_result("搜索序列化错误")
-            return
-
-        if song is None:
+            msg_chain, _ = await pipeline.fetch_and_deliver_first(keyword)
+        except NoSongFoundError:
             log(
                 "info",
                 f"暂无歌曲 {event.session_id} / {event.get_sender_id} -> {event.message_str!r}",
             )
             yield event.plain_result("暂无歌曲")
             return
-
-        if self.cfg.music_card.enable and (it := meting.default_source) in SOURCE_JUMP_MAPPER:
-            card = await build_card_info(song, self.client, log, source=it)
-            if card is None:
-                await event.send(event.plain_result("无法构造卡片"))
-                await sleep(1)
-                await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
-                return
-            msg = await build_card_msg(
-                self.cfg.music_card,
-                card,
-                self.client,
-                log,
-            )
-            await event.send(MessageChain([msg]))
+        except MetingAPIError:
+            yield event.plain_result("搜索响应错误")
             return
-        await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
-        return
+        except MetingParseError:
+            yield event.plain_result("搜索序列化错误")
+            return
+        await event.send(msg_chain)
 
     @filter.command("搜歌")
     async def search(self, event: AstrMessageEvent):
@@ -203,28 +140,17 @@ class Plugin(Star):
             )
             yield event.plain_result("缺少歌名，请使用 `/搜歌 <歌名>` 的形式发起请求。")
             return
-        meting_cfg = self.cfg.meting
-        url = build_url(meting_cfg, keyword)
-        log("debug", f"builded {url}")
-
+        pipeline = MetingPipeline(self.client, self.cfg, log=log)
         try:
-            rsp = await self.client.get(url, follow_redirects=True)
-            rsp.raise_for_status()
-        except HTTPError as e:
-            log("warn", f"`{e.request.url}` -> {e}", exc_info=True)
+            songs = await pipeline.fetch_songs(keyword)
+        except MetingAPIError:
             yield event.plain_result("搜索响应错误")
             return
-
-        songs: list[SongItem]
-        log("debug", f"try parse `{rsp.text}`")
-
-        try:
-            songs = Songs.model_validate_json(rsp.text).root[: self.cfg.searching.results_limit]
-        except ValidationError:
-            log("warn", f"序列化错误 `{url}` -> {rsp.text!r}", exc_info=True)
+        except MetingParseError:
             yield event.plain_result("搜索序列化错误")
             return
 
+        songs = songs[: self.cfg.searching.results_limit]
         if len(songs) == 0:
             yield event.plain_result("暂无歌曲")
             return
@@ -264,31 +190,14 @@ class Plugin(Star):
                     await event.send(event.plain_result("输入错误次数过多，已退出"))
                     controller.stop()
                 return
-            if self.cfg.music_card.enable and (
-                (it := meting_cfg.default_source) in SOURCE_JUMP_MAPPER
-            ):
-                card = await build_card_info(song, self.client, log, source=it)
-                if card is None:
-                    await event.send(event.plain_result("无法构造卡片"))
-                    await sleep(1)
-                    await event.send(
-                        MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))])
-                    )
-
-                    controller.stop()
-                    return
-                msg = await build_card_msg(
-                    self.cfg.music_card,
-                    card,
-                    self.client,
-                    log,
-                )
-                await event.send(MessageChain([msg]))
+            try:
+                msg_chain, _ = await pipeline.deliver_song(song)
+            except MetingError:
+                await event.send(event.plain_result("投递失败"))
                 controller.stop()
                 return
-            await event.send(MessageChain([File(name=f"{song.name}.mp3", url=str(song.url))]))
+            await event.send(msg_chain)
             controller.stop()
-            return
 
         try:
             await waiter(event)
