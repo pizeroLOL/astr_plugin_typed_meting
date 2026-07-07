@@ -37,3 +37,18 @@ python tools/generate_conf_schema.py
 - 使用 conventional commits（`feat:`, `fix:`, `chore:` 等）
 - 注释用中文
 - 路径操作用 `pathlib.Path`
+
+### Python 类型标注
+
+- **class 成员字段必须在类级别标注类型**，即使值在 `__init__` 中赋值。示例：
+  ```python
+  class Foo:
+      _client: AsyncClient
+      _config: Config
+
+      def __init__(self, client: AsyncClient, config: Config):
+          self._client = client
+          self._config = config
+  ```
+- 所有函数/方法签名必须标注参数和返回值类型
+- 用 `| None` 而非 `Optional[...]`
