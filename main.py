@@ -136,7 +136,7 @@ class Plugin(Star):
         if len(keyword) == 0:
             log(
                 "info",
-                f"搜歌缺少歌名 {event.session_id} / {event.get_sender_id} -> {event.message_str:!r} ",
+                f"搜歌缺少歌名 {event.session_id} / {event.get_sender_id} -> {event.message_str!r} ",
             )
             yield event.plain_result("缺少歌名，请使用 `/搜歌 <歌名>` 的形式发起请求。")
             return
