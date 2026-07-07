@@ -63,6 +63,10 @@ class MetingPipeline:
     依赖通过 constructor 注入，接口即测试面。
     """
 
+    _client: AsyncClient
+    _cfg: Config
+    _log: PluginLogger
+
     def __init__(self, client: AsyncClient, cfg: Config, log: PluginLogger) -> None:
         self._client = client
         self._cfg = cfg
